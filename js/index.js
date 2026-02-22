@@ -242,6 +242,7 @@ async function main() {
             }
 
             analyzingElement.classList.add("d-none");
+            document.getElementById("ai-btn-container").classList.remove("d-none");
             calculate();
             render();
         } catch (e) {
@@ -265,6 +266,104 @@ async function main() {
 
     document.querySelector("#loading").style.display = "none";
     document.querySelector(".container").classList.remove("d-none");
+
+    const adviceBtn = document.getElementById("get-advice-btn");
+    const chatWindow = document.getElementById("chat-window");
+    const chatMessages = document.getElementById("chat-messages");
+    const chatInput = document.getElementById("chat-user-input");
+    const sendBtn = document.getElementById("send-chat");
+    const closeChat = document.getElementById("close-chat");
+    const saveApiKeyBtn = document.getElementById("save-api-key");
+    const apiKeyInput = document.getElementById("gemini-api-key");
+    const apiKeyModalEl = document.getElementById("apiKeyModal");
+    const apiKeyModal = new bootstrap.Modal(apiKeyModalEl);
+
+    adviceBtn.addEventListener("click", () => {
+        const key = localStorage.getItem("gemini_api_key");
+        if (!key) {
+            apiKeyModal.show();
+        } else {
+            openChat();
+        }
+    });
+
+    saveApiKeyBtn.addEventListener("click", () => {
+        const key = apiKeyInput.value.trim();
+        if (key) {
+            localStorage.setItem("gemini_api_key", key);
+            apiKeyModal.hide();
+            openChat();
+        }
+    });
+
+    closeChat.addEventListener("click", () => {
+        chatWindow.style.display = "none";
+    });
+
+    function addMessage(text, role) {
+        const div = document.createElement("div");
+        div.className = `msg msg-${role}`;
+        if (role === 'ai') {
+            div.innerHTML = marked.parse(text);
+        } else {
+            div.innerText = text;
+        }
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function openChat() {
+        chatWindow.style.display = "flex";
+        if (chatMessages.children.length === 1) { // Only first time
+            const key = localStorage.getItem("gemini_api_key");
+            const prompt = `You are a professional facial aesthetic consultant and looksmaxxing coach. 
+Based on these facial analysis metrics:
+${JSON.stringify(Object.fromEntries(Object.entries(data).map(([k, v]) => [k, { value: v.analysis.render(), assessment: v.analysis.assess() }])), null, 2)}
+
+Provide a constructive improvement plan focusing on:
+1. Grooming suggestions.
+2. Highlighting facial strengths.
+3. Lifestyle habits for facial health.
+Be concise and helpful.`;
+
+            addMessage("Analyzing your morphology...", "ai");
+            try {
+                const response = await callGemini(key, prompt);
+                chatMessages.innerHTML = ""; // Clear loader
+                addMessage(response, "ai");
+            } catch (e) {
+                addMessage(`Error: ${e.message}. Check your API key.`, "ai");
+            }
+        }
+    }
+
+    sendBtn.addEventListener("click", async () => {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        const key = localStorage.getItem("gemini_api_key");
+        addMessage(text, "user");
+        chatInput.value = "";
+        try {
+            const response = await callGemini(key, text);
+            addMessage(response, "ai");
+        } catch (e) {
+            addMessage(`Error: ${e.message}`, "ai");
+        }
+    });
+
+    async function callGemini(apiKey, prompt) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+        if (!response.ok) throw new Error("API request failed");
+        const resData = await response.json();
+        return resData.candidates[0].content.parts[0].text;
+    }
 
     const exampleModalEl = document.getElementById("exampleModal");
     if (exampleModalEl) {

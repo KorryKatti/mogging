@@ -16,6 +16,7 @@
     <!-- Load Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet" />
     <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
         :root {
@@ -130,6 +131,111 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             border: 2px solid rgba(255, 255, 255, 0.05);
             max-width: 100%;
+        }
+
+        /* AI Suggestions UI */
+        #ai-btn-container {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .btn-mog {
+            background: linear-gradient(135deg, var(--accent) 0%, #0ea5e9 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+        }
+
+        .btn-mog:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6);
+            color: white;
+        }
+
+        #chat-window {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 380px;
+            height: 500px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            z-index: 1050;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+        }
+
+        .chat-header {
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .msg {
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            max-width: 85%;
+            line-height: 1.4;
+        }
+
+        .msg-ai {
+            background: #334155;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .msg-ai p:last-child {
+            margin-bottom: 0;
+        }
+
+        .msg-ai ul,
+        .msg-ai ol {
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .msg-user {
+            background: var(--accent);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 0.75rem;
+            padding: 0.5rem 1rem;
+            flex-grow: 1;
         }
     </style>
 </head>
@@ -269,6 +375,9 @@
                         </tfoot>
                     </table>
                 </div>
+                <div id="ai-btn-container" class="d-none">
+                    <button id="get-advice-btn" class="btn btn-mog">Get Genetic Advice</button>
+                </div>
             </div>
         </div>
 
@@ -298,6 +407,41 @@
         <div class="row" id="render">
             <div class="col text-center">
                 <canvas id="canvas" class="img-fluid"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-window" class="flex-column">
+        <div class="chat-header">
+            <span class="fw-bold">AI Consultant</span>
+            <button type="button" class="btn-close btn-close-white" id="close-chat"></button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="msg msg-ai">Send your data to Gemini for a full improvement plan.</div>
+        </div>
+        <div class="chat-input border-top border-secondary">
+            <input type="text" id="chat-user-input" placeholder="Ask a question...">
+            <button id="send-chat" class="btn btn-sm btn-primary">Send</button>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div class="modal fade" id="apiKeyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Gemini API Setup</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small opacity-75">Your API key is saved locally in your browser.</p>
+                    <input type="password" id="gemini-api-key" class="form-control" placeholder="Enter Gemini API Key">
+                    <div class="mt-2 small text-info">Get one at <a href="https://aistudio.google.com/app/apikey"
+                            target="_blank">Google AI Studio</a></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button id="save-api-key" class="btn btn-primary">Save Key</button>
+                </div>
             </div>
         </div>
     </div>

@@ -1,0 +1,88 @@
+{
+  "entries": {
+    "midfaceRatio": {
+      "idealLower": 0.95,
+      "idealUpper": 1.05,
+      "deviation": 0.05,
+      "deviatingLow": "long",
+      "deviatingHigh": "short"
+    },
+    "facialWidthToHeightRatio": {
+      "idealLower": 1.8,
+      "idealUpper": 3.0,
+      "deviation": 0.1,
+      "deviatingLow": "narrow",
+      "deviatingHigh": "high"
+    },
+    "chinToPhiltrumRatio": {
+      "idealLower": 2.0,
+      "idealUpper": 2.5,
+      "deviation": 0.2,
+      "deviatingLow": "receded",
+      "deviatingHigh": "long"
+    },
+    "canthalTilt": {
+      "idealLower": 2,
+      "idealUpper": 10,
+      "deviation": 2,
+      "deviatingLow": "negative",
+      "deviatingHigh": "extreme"
+    },
+    "mouthToNoseRatio": {
+      "idealLower": 1.5,
+      "idealUpper": 1.7,
+      "deviation": 0.1,
+      "deviatingLow": "narrow",
+      "deviatingHigh": "wide"
+    },
+    "bigonialWidth": {
+      "idealLower": 0.85,
+      "idealUpper": 0.95,
+      "deviation": 0.05,
+      "deviatingLow": "narrow",
+      "deviatingHigh": "wide"
+    },
+    "lipRatio": {
+      "idealLower": 1.5,
+      "idealUpper": 1.7,
+      "deviation": 0.1,
+      "deviatingLow": "thin",
+      "deviatingHigh": "thick"
+    },
+    "eyeSeparationRatio": {
+      "idealLower": 0.45,
+      "idealUpper": 0.5,
+      "deviation": 0.02,
+      "deviatingLow": "close",
+      "deviatingHigh": "wide"
+    },
+    "eyeToMouthAngle": {
+      "idealLower": 30,
+      "idealUpper": 40,
+      "deviation": 5,
+      "deviatingLow": "acute",
+      "deviatingHigh": "obtuse"
+    },
+    "lowerThirdHeight": {
+      "idealLower": 0.9,
+      "idealUpper": 1.1,
+      "deviation": 0.05,
+      "deviatingLow": "short",
+      "deviatingHigh": "high"
+    },
+    "palpebralFissureLength": {
+      "idealLower": 3.0,
+      "idealUpper": 5.0,
+      "deviation": 0.2,
+      "deviatingLow": "short",
+      "deviatingHigh": "high"
+    },
+    "eyeColor": {
+      "idealLower": 0,
+      "idealUpper": 0,
+      "deviation": 0,
+      "deviatingLow": "",
+      "deviatingHigh": ""
+    }
+  }
+}

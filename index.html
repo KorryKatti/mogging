@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mogging</title>
+
+    <!-- Load TensorFlow.js and Face Detection -->
+    <script src="js/tf-core.js"></script>
+    <script src="js/tf-converter.js"></script>
+    <script src="js/tf-backend-cpu.js"></script>
+    <script src="js/face-landmarks-detection.js"></script>
+    <meta name="source" content="incel.solutions">
+
+    <!-- Load Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --accent: #38bdf8;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .spinner-border {
+            width: 4rem;
+            height: 4rem;
+            color: var(--accent);
+        }
+
+        img.img-thumbnail {
+            background-color: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+        }
+
+        .perfect {
+            color: #4ade80;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+
+        .deviation-0 {
+            color: #a3e635;
+        }
+
+        .deviation-1 {
+            color: #facc15;
+        }
+
+        .deviation-2 {
+            color: #fb923c;
+        }
+
+        .deviation-3 {
+            color: #f87171;
+        }
+
+        .deviation-4 {
+            color: #ef4444;
+        }
+
+        .table {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .table thead th {
+            background: rgba(30, 41, 59, 0.9);
+            border-bottom: 2px solid var(--accent);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        .form-control,
+        .form-check-input {
+            background-color: var(--bg-card);
+            border-color: #334155;
+            color: var(--text-main);
+        }
+
+        .form-control:focus {
+            background-color: #334155;
+            color: var(--text-main);
+            box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25);
+            border-color: var(--accent);
+        }
+
+        h3 {
+            color: var(--accent);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        #analyzing-status {
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        canvas#canvas {
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading" class="loading" style="display: none;">
+        <div></div>
+        <div class="spinner-border">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div></div>
+    </div>
+
+    <div class="container py-4">
+        <div class="row">
+            <div class="row g-3">
+                <div class="col-md">
+                    <input type="file" id="image-file" class="form-control" placeholder="Upload">
+                </div>
+                <div class="col-md">
+                    <input type="text" id="image-url" class="form-control" placeholder="Image URL">
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-midface-ratio" class="form-check-input" checked>
+                                </td>
+                                <td>Midface ratio</td>
+                                <td id="assessment-midface-ratio"></td>
+                                <td id="value-midface-ratio"></td>
+                                <td id="ideal-midface-ratio"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-facial-width-to-height-ratio"
+                                        class="form-check-input" checked></td>
+                                <td>Facial width to height ratio</td>
+                                <td id="assessment-facial-width-to-height-ratio"></td>
+                                <td id="value-facial-width-to-height-ratio"></td>
+                                <td id="ideal-facial-width-to-height-ratio"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-chin-to-philtrum-ratio" class="form-check-input"
+                                        checked></td>
+                                <td>Chin to philtrum ratio</td>
+                                <td id="assessment-chin-to-philtrum-ratio"></td>
+                                <td id="value-chin-to-philtrum-ratio"></td>
+                                <td id="ideal-chin-to-philtrum-ratio"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-canthal-tilt" class="form-check-input" checked>
+                                </td>
+                                <td>Canthal tilt</td>
+                                <td id="assessment-canthal-tilt"></td>
+                                <td id="value-canthal-tilt"></td>
+                                <td id="ideal-canthal-tilt"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-mouth-to-nose-ratio" class="form-check-input"
+                                        checked></td>
+                                <td>Mouth to nose ratio</td>
+                                <td id="assessment-mouth-to-nose-ratio"></td>
+                                <td id="value-mouth-to-nose-ratio"></td>
+                                <td id="ideal-mouth-to-nose-ratio"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-bigonial-width" class="form-check-input" checked>
+                                </td>
+                                <td>Bigonial width</td>
+                                <td id="assessment-bigonial-width"></td>
+                                <td id="value-bigonial-width"></td>
+                                <td id="ideal-bigonial-width"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-lip-ratio" class="form-check-input" checked></td>
+                                <td>Lip ratio</td>
+                                <td id="assessment-lip-ratio"></td>
+                                <td id="value-lip-ratio"></td>
+                                <td id="ideal-lip-ratio"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-eye-separation-ratio" class="form-check-input"
+                                        checked></td>
+                                <td>Eye separation ratio</td>
+                                <td id="assessment-eye-separation-ratio"></td>
+                                <td id="value-eye-separation-ratio"></td>
+                                <td id="ideal-eye-separation-ratio"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-eye-to-mouth-angle" class="form-check-input"
+                                        checked></td>
+                                <td>Eye to mouth angle</td>
+                                <td id="assessment-eye-to-mouth-angle"></td>
+                                <td id="value-eye-to-mouth-angle"></td>
+                                <td id="ideal-eye-to-mouth-angle"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-lower-third-height" class="form-check-input"
+                                        checked></td>
+                                <td>Lower third height</td>
+                                <td id="assessment-lower-third-height"></td>
+                                <td id="value-lower-third-height"></td>
+                                <td id="ideal-lower-third-height"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-palpebral-fissure-length" class="form-check-input"
+                                        checked></td>
+                                <td>Palpebral fissure length</td>
+                                <td id="assessment-palpebral-fissure-length"></td>
+                                <td id="value-palpebral-fissure-length"></td>
+                                <td id="ideal-palpebral-fissure-length"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" id="toggle-eye-color" class="form-check-input" checked></td>
+                                <td>Eye color</td>
+                                <td id="assessment-eye-color"></td>
+                                <td id="value-eye-color">
+                                    <canvas height="0" width="0"></canvas>
+                                    <canvas height="0" width="0"></canvas>
+                                </td>
+                                <td id="ideal-eye-color"></td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td></td>
+                                <td><strong>Score</strong></td>
+                                <td id="total-score"></td>
+                                <td id="total-breakdown"></td>
+                                <td id="total-psl"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="introduction" class="row mt-3">
+            <div class="col text-center">
+                <div class="mt-4">
+                    <img class="img-thumbnail" src="img/before.jpg" style="width: 150px;" />
+                    <span class="px-3 opacity-50">/</span>
+                    <img class="img-thumbnail" src="img/after.jpg" style="width: 150px;" />
+                </div>
+            </div>
+        </div>
+
+        <div class="row d-none mt-5" id="analyzing">
+            <div class="col text-center">
+                <div class="loading">
+                    <div></div>
+                    <div class="spinner-border"></div>
+                    <div></div>
+                </div>
+                <div class="mt-3 fs-5">
+                    <div id="analyzing-status"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="render">
+            <div class="col text-center">
+                <canvas id="canvas" class="img-fluid"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title w-100 text-center" id="exampleModalLabel">Mogging</h5>
+                </div>
+                <div class="modal-body text-center py-3">
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-center">
+                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-dismiss="modal">Enter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/analysis.js"></script>
+    <script src="js/index.js"></script>
+    <!-- ref: incel.solutions -->
+</body>
+
+</html>

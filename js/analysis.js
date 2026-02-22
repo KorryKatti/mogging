@@ -634,23 +634,22 @@ function draw(ctx, color, points) {
 
     let current = points[0];
 
-    var fontBase = canvas.width * 0.6;                   // selected default width for canvas
-    var fontSize = 20;                     // default size for font
+    var fontBase = ctx.canvas.width * 0.6;
+    var fontSize = 20;
 
-
-    var ratio = fontSize / fontBase;   // calc ratio
-    var size = canvas.width * ratio;   // get font size based on current width
-    if (canvas.width > 600) {
+    var ratio = fontSize / fontBase;
+    var size = ctx.canvas.width * ratio;
+    if (ctx.canvas.width > 600) {
         ctx.font = size + 'px sans-serif';
     } else {
         ctx.font = '18px sans-serif';
+    }
 
-    } var textWidth = ctx.measureText("text").width;
     ctx.globalAlpha = .50;
     ctx.fillStyle = 'white'
     var text = "Mogging"
-    cw = canvas.width;
-    ch = canvas.height;
+    let cw = ctx.canvas.width;
+    let ch = ctx.canvas.height;
     var textWidth = ctx.measureText(text).width;
     ctx.fillStyle = 'gray'
     ctx.fillText(text, cw - textWidth - 10, ch - 20);

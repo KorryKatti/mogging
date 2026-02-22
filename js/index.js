@@ -7,300 +7,167 @@ async function main() {
     };
 
     setStatus("Loading models...");
-    const model = await faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages.mediapipeFacemesh, {
-        maxFaces: 1
-    });
-    window.faceModel = model;
-    window.database = await setupDatabase();
+    try {
+        const model = await faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages.mediapipeFacemesh, {
+            maxFaces: 1
+        });
+        window.faceModel = model;
+    } catch (e) {
+        console.error("Failed to load face model:", e);
+        setStatus("Error: Could not load AI models. Check internet connection.");
+    }
+
+    try {
+        window.database = await setupDatabase();
+    } catch (e) {
+        console.error("Failed to setup database:", e);
+        window.database = { entries: {} };
+    }
 
     const imageInputFile = document.getElementById("image-file");
-    const imageInputUrl = document.getElementById("image-url");
-    const introductionElement = document.getElementById("introduction");
-    const analyzingElement = document.getElementById("analyzing");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    let data = void 0;
+    let analysisData = void 0;
 
-    imageInputFile.addEventListener("change", async () => {
+    imageInputFile?.addEventListener("change", async () => {
         if (imageInputFile.files[0]) {
-            introductionElement.style.display = "none";
-            analyzingElement.classList.remove("d-none");
-            data && clearData();
+            document.getElementById("init-view")?.classList.add("d-none");
+            document.getElementById("analyzing-overlay")?.classList.remove("d-none");
 
-            setStatus("Reading image");
-            imageInputUrl.value = "";
+            clearData();
+
+            setStatus("Reading image...");
             let url = URL.createObjectURL(imageInputFile.files[0]);
             await onChange(url);
         }
     });
 
-    imageInputUrl.addEventListener("change", async () => {
-        if (imageInputUrl.value) {
-            introductionElement.style.display = "none";
-            analyzingElement.classList.remove("d-none");
-            data && clearData();
-
-            setStatus("Downloading image");
-            imageInputFile.value = "";
-            try {
-                let file = await (await fetch(imageInputUrl.value)).blob();
-                let url = URL.createObjectURL(file);
-                await onChange(url);
-            } catch (e) {
-                console.error(e);
-                setStatus(`Error downloading image: ${e.message}`);
-                analyzingElement.classList.add("d-none");
-            }
-        }
-    });
-
     async function onChange(url) {
         try {
-            setStatus("Analyzing...");
+            setStatus("Analyzing face morphology...");
             let analysis = await analyze(canvas, ctx, url, window.faceModel);
 
-            data = analysis.criteria = {
-                midfaceRatio: {
-                    analysis: analysis.criteria.midfaceRatio,
-                    render: document.getElementById("value-midface-ratio"),
-                    toggle: document.getElementById("toggle-midface-ratio"),
-                    ideal: document.getElementById("ideal-midface-ratio"),
-                    assessment: document.getElementById("assessment-midface-ratio"),
-                },
-                facialWidthToHeightRatio: {
-                    analysis: analysis.criteria.facialWidthToHeightRatio,
-                    render: document.getElementById("value-facial-width-to-height-ratio"),
-                    toggle: document.getElementById("toggle-facial-width-to-height-ratio"),
-                    ideal: document.getElementById("ideal-facial-width-to-height-ratio"),
-                    assessment: document.getElementById("assessment-facial-width-to-height-ratio"),
-                },
-                chinToPhiltrumRatio: {
-                    analysis: analysis.criteria.chinToPhiltrumRatio,
-                    render: document.getElementById("value-chin-to-philtrum-ratio"),
-                    toggle: document.getElementById("toggle-chin-to-philtrum-ratio"),
-                    ideal: document.getElementById("ideal-chin-to-philtrum-ratio"),
-                    assessment: document.getElementById("assessment-chin-to-philtrum-ratio"),
-                },
-                canthalTilt: {
-                    analysis: analysis.criteria.canthalTilt,
-                    render: document.getElementById("value-canthal-tilt"),
-                    toggle: document.getElementById("toggle-canthal-tilt"),
-                    ideal: document.getElementById("ideal-canthal-tilt"),
-                    assessment: document.getElementById("assessment-canthal-tilt"),
-                },
-                mouthToNoseRatio: {
-                    analysis: analysis.criteria.mouthToNoseRatio,
-                    render: document.getElementById("value-mouth-to-nose-ratio"),
-                    toggle: document.getElementById("toggle-mouth-to-nose-ratio"),
-                    ideal: document.getElementById("ideal-mouth-to-nose-ratio"),
-                    assessment: document.getElementById("assessment-mouth-to-nose-ratio"),
-                },
-                bigonialWidth: {
-                    analysis: analysis.criteria.bigonialWidth,
-                    render: document.getElementById("value-bigonial-width"),
-                    toggle: document.getElementById("toggle-bigonial-width"),
-                    ideal: document.getElementById("ideal-bigonial-width"),
-                    assessment: document.getElementById("assessment-bigonial-width"),
-                },
-                lipRatio: {
-                    analysis: analysis.criteria.lipRatio,
-                    render: document.getElementById("value-lip-ratio"),
-                    toggle: document.getElementById("toggle-lip-ratio"),
-                    ideal: document.getElementById("ideal-lip-ratio"),
-                    assessment: document.getElementById("assessment-lip-ratio"),
-                },
-                eyeSeparationRatio: {
-                    analysis: analysis.criteria.eyeSeparationRatio,
-                    render: document.getElementById("value-eye-separation-ratio"),
-                    toggle: document.getElementById("toggle-eye-separation-ratio"),
-                    ideal: document.getElementById("ideal-eye-separation-ratio"),
-                    assessment: document.getElementById("assessment-eye-separation-ratio"),
-                },
-                eyeToMouthAngle: {
-                    analysis: analysis.criteria.eyeToMouthAngle,
-                    render: document.getElementById("value-eye-to-mouth-angle"),
-                    toggle: document.getElementById("toggle-eye-to-mouth-angle"),
-                    ideal: document.getElementById("ideal-eye-to-mouth-angle"),
-                    assessment: document.getElementById("assessment-eye-to-mouth-angle"),
-                },
-                lowerThirdHeight: {
-                    analysis: analysis.criteria.lowerThirdHeight,
-                    render: document.getElementById("value-lower-third-height"),
-                    toggle: document.getElementById("toggle-lower-third-height"),
-                    ideal: document.getElementById("ideal-lower-third-height"),
-                    assessment: document.getElementById("assessment-lower-third-height"),
-                },
-                palpebralFissureLength: {
-                    analysis: analysis.criteria.palpebralFissureLength,
-                    render: document.getElementById("value-palpebral-fissure-length"),
-                    toggle: document.getElementById("toggle-palpebral-fissure-length"),
-                    ideal: document.getElementById("ideal-palpebral-fissure-length"),
-                    assessment: document.getElementById("assessment-palpebral-fissure-length"),
-                },
-                eyeColor: {
-                    analysis: analysis.criteria.eyeColor,
-                    render: document.getElementById("value-eye-color"),
-                    toggle: document.getElementById("toggle-eye-color"),
-                    ideal: document.getElementById("ideal-eye-color"),
-                    assessment: document.getElementById("assessment-eye-color"),
-                },
+            const criteriaMap = {
+                midfaceRatio: "Midface ratio",
+                facialWidthToHeightRatio: "Facial width to height",
+                chinToPhiltrumRatio: "Chin to philtrum",
+                canthalTilt: "Canthal tilt",
+                mouthToNoseRatio: "Mouth to nose",
+                bigonialWidth: "Bigonial width",
+                lipRatio: "Lip ratio",
+                eyeSeparationRatio: "Eye separation",
+                eyeToMouthAngle: "Eye to mouth angle",
+                lowerThirdHeight: "Lower third height",
+                palpebralFissureLength: "Palpebral length",
+                eyeColor: "Eye Color"
             };
 
-            let calculate = () => {
-                for (let i of Object.values(analysis.criteria)) {
-                    i.analysis.calculate();
-                    i.render.innerHTML = i.analysis.render();
-                    i.ideal.innerHTML = i.analysis.ideal();
-                    i.assessment.innerHTML = i.analysis.assess();
-                }
+            analysisData = analysis;
 
-                analysis.criteria.eyeColor.analysis.detect(analysis.image, Array.from(analysis.criteria.eyeColor.render.children).map(i => i.getContext("2d")));
+            let calculate = () => {
+                const feed = document.getElementById("metrics-feed");
+                if (feed) feed.innerHTML = "";
+
+                for (let [key, i] of Object.entries(analysis.criteria)) {
+                    // i is the Criteria instance
+                    i.calculate();
+
+                    if (key === 'eyeColor') {
+                        const card = document.createElement("div");
+                        card.className = "metric-card";
+                        card.innerHTML = `
+                            <div class="metric-header">
+                                <span class="trait-name">Eye Color</span>
+                                <span class="assessment-badge badge-perfect">Detected</span>
+                            </div>
+                            <div class="d-flex justify-content-center gap-3 mt-2" id="eye-color-canvases">
+                                <canvas height="40" width="40" style="border-radius: 50%; border: 2px solid rgba(255,255,255,0.2)"></canvas>
+                                <canvas height="40" width="40" style="border-radius: 50%; border: 2px solid rgba(255,255,255,0.2)"></canvas>
+                            </div>
+                        `;
+                        feed?.appendChild(card);
+                        const canvases = card.querySelectorAll("canvas");
+                        i.detect(analysis.image, Array.from(canvases).map(c => c.getContext("2d")));
+                        continue;
+                    }
+
+                    const dbEntry = window.database.entries[key];
+                    if (!dbEntry) continue;
+
+                    const value = (key === 'eyeToMouthAngle') ? i.angle :
+                        (key === 'canthalTilt') ? (i.leftCanthalTilt + i.rightCanthalTilt) / 2 :
+                            (key === 'palpebralFissureLength') ? (i.leftPFL + i.rightPFL) / 2 :
+                                i.ratio;
+
+                    let status = "far";
+                    let statusText = i.assess().replace(/<[^>]*>?/gm, '');
+                    if (value >= dbEntry.idealLower && value <= dbEntry.idealUpper) {
+                        status = "perfect";
+                    } else if (value >= (dbEntry.idealLower - dbEntry.deviation) && value <= (dbEntry.idealUpper + dbEntry.deviation)) {
+                        status = "near";
+                    }
+
+                    const min = dbEntry.idealLower - (dbEntry.deviation * 3);
+                    const max = dbEntry.idealUpper + (dbEntry.deviation * 3);
+                    const range = max - min;
+                    const idealStart = ((dbEntry.idealLower - min) / range) * 100;
+                    const idealWidth = ((dbEntry.idealUpper - dbEntry.idealLower) / range) * 100;
+                    const userPos = Math.max(0, Math.min(100, ((value - min) / range) * 100));
+
+                    const card = document.createElement("div");
+                    card.className = "metric-card";
+                    card.innerHTML = `
+                        <div class="metric-header">
+                            <span class="trait-name">${criteriaMap[key] || key}</span>
+                            <span class="assessment-badge badge-${status}">${statusText}</span>
+                        </div>
+                        <div class="metric-bar-wrapper">
+                            <div class="metric-bar-container">
+                                <div class="ideal-zone" style="left: ${idealStart}%; width: ${idealWidth}%"></div>
+                                <div class="user-marker" style="left: ${userPos}%"></div>
+                            </div>
+                            <div class="extreme-labels">
+                                <span>${dbEntry.deviatingLow}</span>
+                                <span>${dbEntry.deviatingHigh}</span>
+                            </div>
+                        </div>
+                    `;
+                    feed?.appendChild(card);
+                }
             }
 
             let render = () => {
                 analysis.resetToImage();
                 for (let i of Object.values(analysis.criteria)) {
-                    if (i.toggle.checked) {
-                        i.analysis.draw(ctx);
-                    }
+                    i.draw(ctx);
                 }
             }
 
-            for (let i of Object.values(analysis.criteria)) {
-                i.toggle.onchange = () => render();
-            }
+            document.getElementById("analyzing-overlay")?.classList.add("d-none");
+            document.getElementById("results-view")?.classList.remove("d-none");
+            document.getElementById("ai-btn-container")?.classList.remove("d-none");
 
-            let moving = false;
-
-            canvas.onmousedown = ({ offsetX: x, offsetY: y }) => {
-                let necessaryPoints = Object.values(analysis.criteria).filter(i => i.toggle.checked).map(i => i.analysis.necessaryPoints()).flat();
-
-                for (let i in analysis.points) {
-                    if (analysis.points.hasOwnProperty(i) && necessaryPoints.includes(i)) {
-                        if (Math.sqrt(
-                            (analysis.points[i][0] - x) ** 2
-                            + (analysis.points[i][1] - y) ** 2
-                        ) <= analysis.arcRadius) {
-                            moving = i;
-                            return;
-                        }
-                    }
-                }
-            }
-
-            canvas.ontouchstart = (e) => {
-                let bcr = e.target.getBoundingClientRect();
-                let x = e.targetTouches[0].clientX - bcr.x;
-                let y = e.targetTouches[0].clientY - bcr.y;
-                canvas.onmousedown({ offsetX: x, offsetY: y });
-            }
-
-            canvas.onmouseup = () => {
-                moving = false;
-            }
-
-            canvas.ontouchend = canvas.ontouchcancel = (e) => {
-                canvas.onmouseup();
-            }
-
-            canvas.onmousemove = ({ offsetX: x, offsetY: y }) => {
-                if (moving) {
-                    analysis.points[moving] = [x, y];
-                    calculate();
-                    render();
-                } else {
-                    let necessaryPoints = Object.values(analysis.criteria).filter(i => i.toggle.checked).map(i => i.analysis.necessaryPoints()).flat();
-
-                    for (let i in analysis.points) {
-                        if (analysis.points.hasOwnProperty(i) && necessaryPoints.includes(i)) {
-                            if (Math.sqrt(
-                                (analysis.points[i][0] - x) ** 2
-                                + (analysis.points[i][1] - y) ** 2
-                            ) <= analysis.arcRadius) {
-                                render();
-                                ctx.beginPath();
-                                ctx.strokeStyle = "gray";
-                                let oldLineWidth = ctx.lineWidth;
-                                ctx.lineWidth = 0.5;
-                                ctx.arc(analysis.points[i][0], analysis.points[i][1], ctx.arcRadius + 1.5, 0, 2 * Math.PI);
-                                ctx.stroke();
-                                ctx.lineWidth = oldLineWidth;
-                                return;
-                            }
-                        }
-                    }
-                    render();
-                }
-            }
-
-            canvas.ontouchmove = (e) => {
-                let bcr = e.target.getBoundingClientRect();
-                let x = e.targetTouches[0].clientX - bcr.x;
-                let y = e.targetTouches[0].clientY - bcr.y;
-                canvas.onmousemove({ offsetX: x, offsetY: y });
-            }
-
-            analyzingElement.classList.add("d-none");
-            document.getElementById("ai-btn-container").classList.remove("d-none");
             calculate();
             render();
+            document.getElementById("results-view")?.scrollIntoView({ behavior: 'smooth' });
+
         } catch (e) {
-            console.error(e);
-            setStatus(`Error: ${e.message}`);
-            analyzingElement.classList.add("d-none");
+            console.error("Analysis Error:", e);
+            setStatus(`Analysis Failed: ${e.message}`);
+            document.getElementById("analyzing-overlay")?.classList.add("d-none");
+            document.getElementById("init-view")?.classList.remove("d-none");
         }
     }
 
     function clearData() {
-        canvas.width = 0;
-        canvas.height = 0;
-        if (data) {
-            for (let i of Object.values(data)) {
-                if (i.render) i.render.innerHTML = "";
-                if (i.ideal) i.ideal.innerHTML = "";
-                if (i.assessment) i.assessment.innerHTML = "";
-            }
-        }
+        const feed = document.getElementById("metrics-feed");
+        if (feed) feed.innerHTML = "";
     }
 
-    document.querySelector("#loading").style.display = "none";
-    document.querySelector(".container").classList.remove("d-none");
-
-    const adviceBtn = document.getElementById("get-advice-btn");
-    const chatWindow = document.getElementById("chat-window");
-    const chatMessages = document.getElementById("chat-messages");
-    const chatInput = document.getElementById("chat-user-input");
-    const sendBtn = document.getElementById("send-chat");
-    const closeChat = document.getElementById("close-chat");
-    const saveApiKeyBtn = document.getElementById("save-api-key");
-    const apiKeyInput = document.getElementById("gemini-api-key");
-    const apiKeyModalEl = document.getElementById("apiKeyModal");
-    const apiKeyModal = new bootstrap.Modal(apiKeyModalEl);
-
-    adviceBtn.addEventListener("click", () => {
-        const key = localStorage.getItem("gemini_api_key");
-        if (!key) {
-            apiKeyModal.show();
-        } else {
-            openChat();
-        }
-    });
-
-    saveApiKeyBtn.addEventListener("click", () => {
-        const key = apiKeyInput.value.trim();
-        if (key) {
-            localStorage.setItem("gemini_api_key", key);
-            apiKeyModal.hide();
-            openChat();
-        }
-    });
-
-    closeChat.addEventListener("click", () => {
-        chatWindow.style.display = "none";
-    });
-
     function addMessage(text, role) {
+        const chatMessages = document.getElementById("chat-messages");
+        if (!chatMessages) return;
         const div = document.createElement("div");
         div.className = `msg msg-${role}`;
         if (role === 'ai') {
@@ -313,43 +180,36 @@ async function main() {
     }
 
     async function openChat() {
+        const chatWindow = document.getElementById("chat-window");
+        const chatMessages = document.getElementById("chat-messages");
+        if (!chatWindow || !chatMessages) return;
+
         chatWindow.style.display = "flex";
-        if (chatMessages.children.length === 1) { // Only first time
+        if (chatMessages.children.length === 1 && analysisData) {
             const key = localStorage.getItem("gemini_api_key");
-            const prompt = `You are a professional facial aesthetic consultant and looksmaxxing coach. 
-Based on these facial analysis metrics:
-${JSON.stringify(Object.fromEntries(Object.entries(data).map(([k, v]) => [k, { value: v.analysis.render(), assessment: v.analysis.assess() }])), null, 2)}
+            const metricsSummary = Object.fromEntries(
+                Object.entries(analysisData.criteria).map(([k, v]) => [k, {
+                    value: v.render(),
+                    assessment: v.assess().replace(/<[^>]*>?/gm, '')
+                }])
+            );
 
-Provide a constructive improvement plan focusing on:
-1. Grooming suggestions.
-2. Highlighting facial strengths.
-3. Lifestyle habits for facial health.
-Be concise and helpful.`;
+            const prompt = `You are a professional facial aesthetic consultant. 
+Analysis results:
+${JSON.stringify(metricsSummary, null, 2)}
 
-            addMessage("Analyzing your morphology...", "ai");
+Provide a concise, premium Genetic Improvement Plan. Highlight strengths and suggest subtle grooming/lifestyle changes.Be rought and direct. Avoid sweet talk`;
+
+            addMessage("Consulting with AI...", "ai");
             try {
                 const response = await callGemini(key, prompt);
-                chatMessages.innerHTML = ""; // Clear loader
+                chatMessages.innerHTML = "";
                 addMessage(response, "ai");
             } catch (e) {
-                addMessage(`Error: ${e.message}. Check your API key.`, "ai");
+                addMessage(`Error: ${e.message}. Check your Gemini API key in settings.`, "ai");
             }
         }
     }
-
-    sendBtn.addEventListener("click", async () => {
-        const text = chatInput.value.trim();
-        if (!text) return;
-        const key = localStorage.getItem("gemini_api_key");
-        addMessage(text, "user");
-        chatInput.value = "";
-        try {
-            const response = await callGemini(key, text);
-            addMessage(response, "ai");
-        } catch (e) {
-            addMessage(`Error: ${e.message}`, "ai");
-        }
-    });
 
     async function callGemini(apiKey, prompt) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -365,15 +225,60 @@ Be concise and helpful.`;
         return resData.candidates[0].content.parts[0].text;
     }
 
+    const adviceBtn = document.getElementById("get-advice-btn");
+    const saveApiKeyBtn = document.getElementById("save-api-key");
+    const apiKeyInput = document.getElementById("gemini-api-key");
+    const apiKeyModalEl = document.getElementById("apiKeyModal");
+    const apiKeyModal = apiKeyModalEl ? new bootstrap.Modal(apiKeyModalEl) : null;
+    const closeChat = document.getElementById("close-chat");
+    const sendBtn = document.getElementById("send-chat");
+    const chatInput = document.getElementById("chat-user-input");
+
+    adviceBtn?.addEventListener("click", () => {
+        const key = localStorage.getItem("gemini_api_key");
+        if (!key) {
+            apiKeyModal?.show();
+        } else {
+            openChat();
+        }
+    });
+
+    saveApiKeyBtn?.addEventListener("click", () => {
+        const key = apiKeyInput.value.trim();
+        if (key) {
+            localStorage.setItem("gemini_api_key", key);
+            apiKeyModal?.hide();
+            openChat();
+        }
+    });
+
+    closeChat?.addEventListener("click", () => {
+        const chatWindow = document.getElementById("chat-window");
+        if (chatWindow) chatWindow.style.display = "none";
+    });
+
+    sendBtn?.addEventListener("click", async () => {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        const key = localStorage.getItem("gemini_api_key");
+        addMessage(text, "user");
+        chatInput.value = "";
+        try {
+            const response = await callGemini(key, text);
+            addMessage(response, "ai");
+        } catch (e) {
+            addMessage(`Error: ${e.message}`, "ai");
+        }
+    });
+
     const exampleModalEl = document.getElementById("exampleModal");
     if (exampleModalEl) {
         const modal = new bootstrap.Modal(exampleModalEl, {});
-        modal.toggle();
+        modal.show();
     }
 }
 
 async function analyze(canvas, ctx, url, model) {
-    setStatus("Loading image...");
     let image = await loadImage(url);
 
     canvas.width = image.width;
@@ -382,11 +287,8 @@ async function analyze(canvas, ctx, url, model) {
     ctx.lineWidth = Math.sqrt((image.width * image.height) / 100000);
     ctx.arcRadius = Math.sqrt((image.width * image.height) / 100000);
 
-    setStatus("Analyzing...");
     if (!model) {
-        model = await faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages.mediapipeFacemesh, {
-            maxFaces: 1
-        });
+        throw new Error("AI Model not loaded. Please wait or refresh.");
     }
     let face = await findLandmarks(model, image);
     let [points, criteria] = analyseCriteria(face);
@@ -404,6 +306,7 @@ function loadImage(url) {
     return new Promise((resolve, reject) => {
         const image = new Image();
         image.src = url;
+        image.crossOrigin = "anonymous";
         image.onload = () => resolve(image);
         image.onerror = (e) => reject(new Error("Failed to load image"));
     });
@@ -421,7 +324,7 @@ async function findLandmarks(model, image) {
     if (predictions && predictions.length > 0) {
         return predictions[0];
     } else {
-        throw new Error("No face detected");
+        throw new Error("No face detected in photo");
     }
 }
 
